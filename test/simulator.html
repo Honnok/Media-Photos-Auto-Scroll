@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulateur reset photos Facebook</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font: 14px/1.4 system-ui, sans-serif;
+      background: #1c1e21;
+      color: #e4e6eb;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 10px 14px;
+      background: #242526;
+      border-bottom: 1px solid #3a3b3c;
+    }
+    button, label {
+      background: #3a3b3c;
+      color: #e4e6eb;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    button.on { background: #31a24c; color: #fff; }
+    #status { opacity: .85; }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 12px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    a.photo {
+      display: block;
+      aspect-ratio: 1;
+      background: #3a3b3c;
+      border-radius: 4px;
+      color: #b0b3b8;
+      text-decoration: none;
+      font-size: 12px;
+      display: flex;
+      align-items: flex-end;
+      padding: 6px;
+      background-image: linear-gradient(135deg, #3a3b3c, #5b5d61);
+    }
+    a.photo img { display: none; }
+    footer {
+      text-align: center;
+      padding: 40px 12px 80px;
+      color: #b0b3b8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button id="toggle">Démarrer auto-scroll</button>
+    <button id="brutal">Scroll brutal (provoque le reset)</button>
+    <button id="reset">Simuler un reset</button>
+    <label><input type="checkbox" id="virt" checked /> Virtualiser (comme FB)</label>
+    <span id="status">prêt</span>
+  </header>
+  <div id="grid"></div>
+  <footer>
+    <h2>Amis</h2>
+    <p>Fin de la section photos (le scroller doit s’arrêter ici).</p>
+  </footer>
+  <script src="../engine.js"></script>
+  <script>
+    const TOTAL = 420;
+    const PAGE = 24;
+    let loaded = 0;
+    const virt = document.getElementById("virt");
+    const grid = document.getElementById("grid");
+    const status = document.getElementById("status");
+
+    const RESET_JUMP = 780;
+    let lastTop = 0;
+    let applying = false;
+
+    function color(i) {
+      const h = (i * 37) % 360;
+      return `hsl(${h} 28% 38%)`;
+    }
+
+    function render() {
+      const y = window.scrollY;
+      const vh = window.innerHeight;
+      const start = virt.checked ? Math.max(0, Math.floor(y / 190) * 5 - 15) : 0;
+      const end = virt.checked ? Math.min(loaded, start + 70) : loaded;
+      const padTop = virt.checked ? Math.floor(start / 5) * 190 : 0;
+      const padBot = virt.checked ? Math.max(0, Math.ceil((loaded - end) / 5) * 190) : 0;
+      let html = padTop ? `<div style="grid-column:1/-1;height:${padTop}px"></div>` : "";
+      for (let i = start; i < end; i++) {
+        html += `<a class="photo" href="/photo/?fbid=${1000 + i}&set=a.1" style="background:${color(i)}">
+          <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" width="160" height="160" alt="">
+          #${i + 1}
+        </a>`;
+      }
+      if (padBot) html += `<div style="grid-column:1/-1;height:${padBot}px"></div>`;
+      grid.innerHTML = html;
+    }
+
+    function maybeLoad() {
+      if (loaded >= TOTAL) return;
+      const nearBottom = window.scrollY + window.innerHeight > document.documentElement.scrollHeight - 900;
+      if (nearBottom) {
+        loaded = Math.min(TOTAL, loaded + PAGE);
+        render();
+      }
+    }
+
+    window.addEventListener("scroll", () => {
+      if (applying) return;
+      const y = window.scrollY;
+      if (y - lastTop > RESET_JUMP) {
+        applying = true;
+        window.scrollTo(0, 0);
+        lastTop = 0;
+        status.textContent = "RESET (scroll trop brutal)";
+        render();
+        setTimeout(() => { applying = false; }, 0);
+        return;
+      }
+      lastTop = y;
+      maybeLoad();
+      if (virt.checked) render();
+    }, { passive: true });
+
+    loaded = PAGE;
+    render();
+
+    const controller = window.createPhotoAutoScroll({
+      onState(s) {
+        const label = s.running
+          ? (s.recovering ? "récupération" : s.status) + " — " + s.photos + " photos"
+          : s.status + (s.photos ? " — " + s.photos + " photos" : "");
+        status.textContent = label;
+        document.getElementById("toggle").textContent = s.running ? "Arrêter" : "Démarrer auto-scroll";
+        document.getElementById("toggle").classList.toggle("on", s.running);
+      }
+    });
+
+    document.getElementById("toggle").onclick = () => controller.toggle();
+    document.getElementById("brutal").onclick = () => window.scrollTo(0, 20000);
+    document.getElementById("reset").onclick = () => {
+      applying = true;
+      window.scrollTo(0, 0);
+      lastTop = 0;
+      status.textContent = "RESET manuel";
+      render();
+      setTimeout(() => { applying = false; }, 0);
+    };
+    virt.onchange = () => render();
+  </script>
+</body>
+</html>

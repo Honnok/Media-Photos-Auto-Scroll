@@ -1,0 +1,41 @@
+{
+  "manifest_version": 4,
+  "name": "Media Photos Auto-Scroll",
+  "version": "1.0.0",
+  "description": "MPAS is Google Chrome extension that automatically scrolls through Facebook galleries/pages to the bottom, allowing the user to browse passively while multitasking. It bypasses Facebook's native scroll-blocking (which throttles or resets standard programmatic scrolling) by simulating human-like scroll behavior — dynamic, variable-speed scrolling combined with background image preloading (forcing lazy-loaded images to render ahead of the visible viewport) to avoid triggering Facebook's anti-bot detection.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Photos Auto-Scroll — ouvre la grille Photos d’un compte, puis clique pour démarrer",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["scripting"],
+  "host_permissions": [
+    "https://www.facebook.com/*",
+    "https://web.facebook.com/*",
+    "https://m.facebook.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.facebook.com/*",
+        "https://web.facebook.com/*",
+        "https://m.facebook.com/*"
+      ],
+      "js": ["engine.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
